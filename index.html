@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Stalin Blur - Añadir blur a imágenes</title>
+  <link rel="icon" href="stalin.png" type="image/png">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <style>
@@ -32,11 +33,11 @@
           <button id="btnPick" class="px-3 py-2 rounded-xl ghost-btn transition text-sm">Seleccionar imágenes</button>
           <input id="fileInput" type="file" accept="image/*" multiple class="hidden" />
 
-          <button id="btnZip" class="px-3 py-2 rounded-xl ghost-btn transition text-sm">Cargar ZIP</button>
+          <button id="btnZip" class="px-3 py-2 rounded-xl ghost-btn transition text-sm" disabled>Cargar ZIP</button>
           <input id="zipInput" type="file" accept=".zip" class="hidden" />
 
           <div id="dropzone" class="mt-2 border-2 border-dashed border-neutral-700 rounded-2xl p-6 text-center text-sm text-neutral-300 bg-neutral-900/40">
-            Arrastrá imágenes o ZIP aquí
+            Arrastrá imágenes aquí
           </div>
           <p class="text-xs text-neutral-400">Admite .png, .jpg, .jpeg, .webp, .bmp y .zip</p>
         </div>
@@ -92,7 +93,7 @@
     </section>
 
     <footer class="py-4 text-center text-xs text-neutral-500">
-      Abrí este archivo .html en tu navegador, sin servidor. Requiere conexión para cargar las librerías de CDN.
+      <p id="footerQuote" class="max-w-3xl mx-auto"></p>
     </footer>
   </main>
 
@@ -371,7 +372,85 @@
       for (const it of state.queue) URL.revokeObjectURL(it.blobUrl);
       for (const r of state.results) URL.revokeObjectURL(r.outUrl);
     });
+
+    // Frases
+  const quotes = [
+    // Karl Marx
+    { author: "Karl Marx", text: "Los filósofos no han hecho más que interpretar el mundo; de lo que se trata es de transformarlo." },
+    { author: "Karl Marx", text: "La historia de todas las sociedades hasta nuestros días es la historia de la lucha de clases." },
+    { author: "Karl Marx", text: "Proletarios de todos los países, uníos." },
+    { author: "Karl Marx", text: "La emancipación de los trabajadores será obra de los trabajadores mismos." },
+
+    // Vladímir I. Lenin
+    { author: "Vladímir I. Lenin", text: "Sin teoría revolucionaria no puede haber movimiento revolucionario." },
+    { author: "Vladímir I. Lenin", text: "El socialismo no caerá del cielo, lo construirán las masas con su propia experiencia." },
+    { author: "Vladímir I. Lenin", text: "Hay décadas en las que no pasa nada y semanas en las que pasan décadas." },
+    { author: "Vladímir I. Lenin", text: "Aprender, aprender y aprender: he ahí la consigna." },
+
+    // Iósif Stalin
+    { author: "Iósif Stalin", text: "Los cuadros deciden todo." },
+    { author: "Iósif Stalin", text: "La educación es un arma cuyo efecto depende de quién la tenga en sus manos y a quién apunte." },
+    { author: "Iósif Stalin", text: "La vida se ha vuelto más alegre, camaradas; la vida se ha vuelto más feliz." },
+    { author: "Iósif Stalin", text: "El hombre es nuestro capital más valioso." },
+
+    // Mao Zedong
+    { author: "Mao Zedong", text: "Una sola chispa puede incendiar la pradera." },
+    { author: "Mao Zedong", text: "El poder nace del fusil." },
+    { author: "Mao Zedong", text: "Servir al pueblo." },
+    { author: "Mao Zedong", text: "Defender hasta la muerte la unidad entre el Partido y las masas." },
+
+    // Deng Xiaoping
+    { author: "Deng Xiaoping", text: "No importa si el gato es blanco o negro; mientras cace ratones es un buen gato." },
+    { author: "Deng Xiaoping", text: "Enriquecerse es glorioso." },
+    { author: "Deng Xiaoping", text: "Cruzar el río tocando las piedras." },
+    { author: "Deng Xiaoping", text: "Debemos liberar nuestras mentes y buscar la verdad en los hechos." },
+
+    // Xi Jinping
+    { author: "Xi Jinping", text: "El sueño chino es el gran rejuvenecimiento de la nación china." },
+    { author: "Xi Jinping", text: "No dejaremos a nadie atrás en el proceso de erradicar la pobreza." },
+    { author: "Xi Jinping", text: "Las aspiraciones del pueblo por una vida mejor son nuestro objetivo." },
+    { author: "Xi Jinping", text: "El Partido debe gobernarse estrictamente a sí mismo." },
+
+    // Ernesto "Che" Guevara
+    { author: "Ernesto Che Guevara", text: "Seamos realistas y hagamos lo imposible." },
+    { author: "Ernesto Che Guevara", text: "Hasta la victoria siempre." },
+    { author: "Ernesto Che Guevara", text: "El verdadero revolucionario está guiado por grandes sentimientos de amor." },
+    { author: "Ernesto Che Guevara", text: "Hay que endurecerse sin perder jamás la ternura." },
+
+    // Fidel Castro
+    { author: "Fidel Castro", text: "La historia me absolverá." },
+    { author: "Fidel Castro", text: "Dentro de la Revolución, todo; contra la Revolución, nada." },
+    { author: "Fidel Castro", text: "Revolución es cambiar todo lo que debe ser cambiado." },
+    { author: "Fidel Castro", text: "No le decimos al pueblo cree, le decimos lee." },
+
+    // Juan Domingo Perón
+    { author: "Juan Domingo Perón", text: "Mejor que decir es hacer, mejor que prometer es realizar." },
+    { author: "Juan Domingo Perón", text: "La única verdad es la realidad." },
+    { author: "Juan Domingo Perón", text: "Para un peronista no puede haber nada mejor que otro peronista." },
+    { author: "Juan Domingo Perón", text: "Llevaré en mis oídos la más maravillosa música, que es la palabra del pueblo argentino." },
+
+    // Eva Perón
+    { author: "Eva Perón", text: "Donde hay una necesidad, nace un derecho." },
+    { author: "Eva Perón", text: "Yo no valgo por lo que tengo sino por lo que doy." },
+    { author: "Eva Perón", text: "Prefiero ser Evita a ser la esposa del presidente." },
+    { author: "Eva Perón", text: "Renuncio a los honores, pero no a la lucha." }
+  ];
+
+  function setRandomFooterQuote() {
+    const footerEl = document.getElementById("footerQuote");
+    if (!footerEl) return;
+
+    const randomIndex = Math.floor(Math.random() * quotes.length);
+    const { author, text } = quotes[randomIndex];
+
+    footerEl.innerHTML = `“${text}” <span class="block mt-1 text-neutral-600">— ${author}</span>`;
+  }
+
+  // Ejecutar al cargar la página
+  document.addEventListener("DOMContentLoaded", setRandomFooterQuote);
+
   </script>
 </body>
 
 </html>
+
