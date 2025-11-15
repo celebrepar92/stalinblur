@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Adaptador de Imágenes con Blur (1920×1080 / 1080×1920)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    .aspect-video { position: relative; width: 100%; }
+    .aspect-video::before { content: ""; display: block; padding-bottom: 56.25%; }
+    .aspect-video>* { position: absolute; inset: 0; }
+    .ghost-btn { border: 1px solid rgb(64 64 64); background: rgb(38 38 38); }
+    .ghost-btn:hover { background: rgb(64 64 64); }
+  </style>
+</head>
+<body class="min-h-screen w-full bg-neutral-950 text-neutral-100">
+  <header class="sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-neutral-950/60 border-b border-neutral-800">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
+      <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow"></div>
+      <h1 class="text-lg font-semibold tracking-tight">Adaptador con Blur</h1>
+      <span class="text-xs text-neutral-400 ml-auto">1920×1080 / 1080×1920 · Canvas-like</span>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-6 grid gap-6">
+    <section class="grid md:grid-cols-3 gap-4">
+      <div class="p-4 rounded-2xl border border-neutral-800 bg-neutral-900/50 shadow">
+        <h2 class="text-sm font-medium mb-3">Entrada</h2>
+        <div class="flex flex-col gap-2">
+          <button id="btnPick" class="px-3 py-2 rounded-xl ghost-btn transition text-sm">Seleccionar imágenes</button>
+          <input id="fileInput" type="file" accept="image/*" multiple class="hidden" />
+
+          <button id="btnZip" class="px-3 py-2 rounded-xl ghost-btn transition text-sm">Cargar ZIP</button>
+          <input id="zipInput" type="file" accept=".zip" class="hidden" />
+
+          <div id="dropzone" class="mt-2 border-2 border-dashed border-neutral-700 rounded-2xl p-6 text-center text-sm text-neutral-300 bg-neutral-900/40">
+            Arrastrá imágenes o ZIP aquí
+          </div>
+          <p class="text-xs text-neutral-400">Admite .png, .jpg, .jpeg, .webp, .bmp y .zip</p>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-2xl border border-neutral-800 bg-neutral-900/50 shadow">
+        <h2 class="text-sm font-medium mb-3">Salida</h2>
+        <div class="flex flex-wrap gap-2 items-center">
+          <label class="px-3 py-1.5 rounded-xl text-sm cursor-pointer border border-neutral-700" id="lblLandscape">
+            <input type="radio" name="orientation" value="landscape" class="hidden" checked>
+            1920×1080 (Horizontal)
+          </label>
+          <label class="px-3 py-1.5 rounded-xl text-sm cursor-pointer border border-neutral-700" id="lblPortrait">
+            <input type="radio" name="orientation" value="portrait" class="hidden">
+            1080×1920 (Vertical)
+          </label>
+        </div>
+
+        <div class="mt-4 grid gap-3">
+          <div class="flex items-center gap-3">
+            <label class="text-xs text-neutral-300 w-24">Blur</label>
+            <input id="rangeBlur" type="range" min="0" max="60" value="28" class="w-full" />
+            <span id="blurVal" class="text-xs w-10 text-right">28px</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <label class="text-xs text-neutral-300 w-24">Calidad JPG</label>
+            <input id="rangeQ" type="range" min="0.5" max="1" step="0.01" value="0.92" class="w-full" />
+            <span id="qVal" class="text-xs w-10 text-right">92%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-2xl border border-neutral-800 bg-neutral-900/50 shadow flex flex-col gap-2">
+        <h2 class="text-sm font-medium mb-3">Acciones</h2>
+        <button id="btnProcess" class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 transition text-sm disabled:opacity-50" disabled>Procesar</button>
+        <button id="btnZipOut" class="px-3 py-2 rounded-xl ghost-btn transition text-sm disabled:opacity-50" disabled>Descargar todo (ZIP)</button>
+        <button id="btnSaveDir" class="px-3 py-2 rounded-xl ghost-btn transition text-sm">Guardar todo en carpeta</button>
+        <button id="btnClear" class="px-3 py-2 rounded-xl ghost-btn transition text-sm">Limpiar</button>
+        <p id="log" class="text-xs text-amber-400 mt-1 whitespace-pre-wrap"></p>
+      </div>
+    </section>
+
+    <section class="grid md:grid-cols-2 gap-4">
+      <div class="p-4 rounded-2xl border border-neutral-800 bg-neutral-900/50 shadow">
+        <h3 class="text-sm font-medium mb-3">Cola (<span id="queueCount">0</span>)</h3>
+        <div id="queueGrid" class="grid grid-cols-2 lg:grid-cols-3 gap-3"></div>
+      </div>
+
+      <div class="p-4 rounded-2xl border border-neutral-800 bg-neutral-900/50 shadow">
+        <h3 class="text-sm font-medium mb-3">Resultados (<span id="resultsCount">0</span>)</h3>
+        <div id="resultsGrid" class="grid grid-cols-2 lg:grid-cols-3 gap-3"></div>
+      </div>
+    </section>
+
+    <footer class="py-4 text-center text-xs text-neutral-500">
+      Abrí este archivo .html en tu navegador, sin servidor. Requiere conexión para cargar las librerías de CDN.
+    </footer>
+  </main>
+
+  <script>
+    // Estado
+    const state = {
+      queue: [],        // {id, name, file, blobUrl}
+      results: [],      // {id, name, outBlob, outUrl}
+      orientation: 'landscape', // 'landscape' | 'portrait'
+      blurPx: 28,
+      quality: 0.92,
+      busy: false,
+    };
+
+    // Utilidades
+    const $ = (sel) => document.querySelector(sel);
+    const uid = () => Math.random().toString(36).slice(2);
+
+    const acceptExt = new Set(['.png', '.jpg', '.jpeg', '.webp', '.bmp']);
+    const isImageFile = (f) => f.type?.startsWith('image/') || hasImageExt(f.name);
+    function hasImageExt(name = '') { const lower = name.toLowerCase(); for (const ext of acceptExt) if (lower.endsWith(ext)) return true; return false; }
+
+    function getMimeFromExt(name) {
+      const lower = name.toLowerCase();
+      if (lower.endsWith('.png')) return 'image/png';
+      if (lower.endsWith('.webp')) return 'image/webp';
+      if (lower.endsWith('.bmp')) return 'image/bmp';
+      return 'image/jpeg';
+    }
+
+    function suggestOutName(name = 'output.jpg') {
+      const base = name.replace(/\.[^.]+$/, '');
+      const suf = state.orientation === 'landscape' ? '_1920x1080' : '_1080x1920';
+      return base + suf + '.jpg';
+    }
+
+    function fitContain(sw, sh, dw, dh) {
+      const s = Math.min(dw / sw, dh / sh);
+      const cw = Math.round(sw * s);
+      const ch = Math.round(sh * s);
+      const dx = Math.round((dw - cw) / 2);
+      const dy = Math.round((dh - ch) / 2);
+      return { dx, dy, dw: cw, dh: ch };
+    }
+
+    function fitCover(sw, sh, dw, dh) {
+      const s = Math.max(dw / sw, dh / sh);
+      const sx = Math.round((sw - dw / s) / 2);
+      const sy = Math.round((sh - dh / s) / 2);
+      const swCrop = Math.round(dw / s);
+      const shCrop = Math.round(dh / s);
+      return { sx, sy, sw: swCrop, sh: shCrop };
+    }
+
+    function canDims() { return state.orientation === 'landscape' ? {W:1920,H:1080} : {W:1080,H:1920}; }
+
+    function setBusy(v) {
+      state.busy = v;
+      $('#btnProcess').disabled = v || !state.queue.length;
+      $('#btnZipOut').disabled = v || !state.results.length;
+      $('#btnPick').disabled = v;
+      $('#btnZip').disabled = v;
+      $('#dropzone').classList.toggle('opacity-50', v);
+    }
+
+    function log(msg, append = true) {
+      const el = document.querySelector('#log');
+      if (!el) return;
+      el.textContent = append ? (el.textContent ? el.textContent + '\n' + msg : msg) : msg;
+    }
+
+    async function saveAllToFolder() {
+      if (!state.results.length) { log('No hay resultados para guardar.'); return; }
+      if (!('showDirectoryPicker' in window)) { log('Tu navegador no soporta guardar en carpeta. Probá Chrome/Edge.'); return; }
+      try {
+        const dir = await window.showDirectoryPicker({ id: 'adaptadas-out' });
+        for (const r of state.results) {
+          const fileHandle = await dir.getFileHandle(r.name, { create: true });
+          const writable = await fileHandle.createWritable();
+          await writable.write(r.outBlob);
+          await writable.close();
+        }
+        log('Guardado completo en la carpeta elegida.');
+      } catch (e) {
+        if (e && e.name === 'AbortError') return; // usuario canceló
+        console.error(e); log('No se pudo guardar en carpeta.');
+      }
+    }
+
+    function refreshLists() {
+      $('#queueCount').textContent = state.queue.length;
+      $('#resultsCount').textContent = state.results.length;
+
+      const qg = $('#queueGrid');
+      qg.innerHTML = '';
+      for (const it of state.queue) {
+        const card = document.createElement('article');
+        card.className = 'rounded-xl overflow-hidden border border-neutral-800 bg-neutral-900/70';
+        card.innerHTML = `
+          <div class="aspect-video bg-neutral-950/50">
+            <img src="${it.blobUrl}" alt="${it.name}" class="w-full h-full object-cover"/>
+          </div>
+          <div class="p-2 text-xs flex items-center justify-between gap-2">
+            <span class="truncate" title="${it.name}">${it.name}</span>
+            <button class="text-neutral-300 hover:text-red-400">✕</button>
+          </div>`;
+        card.querySelector('button').addEventListener('click', () => {
+          URL.revokeObjectURL(it.blobUrl);
+          state.queue = state.queue.filter(x => x.id !== it.id);
+          refreshLists();
+          $('#btnProcess').disabled = !state.queue.length || state.busy;
+        });
+        qg.appendChild(card);
+      }
+
+      const rg = $('#resultsGrid');
+      rg.innerHTML = '';
+      for (const r of state.results) {
+        const card = document.createElement('article');
+        card.className = 'rounded-xl overflow-hidden border border-neutral-800 bg-neutral-900/70';
+        card.innerHTML = `
+          <div class="aspect-video bg-neutral-950/50">
+            <img src="${r.outUrl}" alt="${r.name}" class="w-full h-full object-cover"/>
+          </div>
+          <div class="p-2 text-xs flex items-center justify-between gap-2">
+            <span class="truncate" title="${r.name}">${r.name}</span>
+            <a class="px-2 py-1 rounded-lg ghost-btn" href="${r.outUrl}" download="${r.name}">Descargar</a>
+          </div>`;
+        rg.appendChild(card);
+      }
+
+      $('#btnZipOut').disabled = !state.results.length || state.busy;
+    }
+
+    function appendFiles(fileList) {
+      const list = Array.from(fileList || []).filter(isImageFile);
+      if (!list.length) return;
+      const items = list.map(f => ({ id: uid(), name: f.name, file: f, blobUrl: URL.createObjectURL(f) }));
+      state.queue.push(...items);
+      refreshLists();
+      $('#btnProcess').disabled = !state.queue.length || state.busy;
+    }
+
+    async function handleZipFiles(fileList) {
+      const list = Array.from(fileList || []).filter(f => f.name.toLowerCase().endsWith('.zip'));
+      if (!list.length) return;
+      setBusy(true);
+      try {
+        const newItems = [];
+        for (const zf of list) {
+          const buf = await zf.arrayBuffer();
+          const zip = await JSZip.loadAsync(buf);
+          const entries = Object.values(zip.files).filter(e => !e.dir && hasImageExt(e.name));
+          for (const entry of entries) {
+            const blob = await entry.async('blob');
+            const extMime = getMimeFromExt(entry.name);
+            const file = new File([blob], entry.name.split('/').pop(), { type: extMime });
+            newItems.push({ id: uid(), name: file.name, file, blobUrl: URL.createObjectURL(file) });
+          }
+        }
+        if (newItems.length) {
+          state.queue.push(...newItems);
+          refreshLists();
+          $('#btnProcess').disabled = !state.queue.length || state.busy;
+        }
+      } catch (err) {
+        console.error(err);
+        log('No se pudo leer el ZIP. Asegurate de que contenga imágenes.');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function imageBitmapFromFile(file) {
+      if ('createImageBitmap' in window) {
+        return await createImageBitmap(file);
+      }
+      const url = URL.createObjectURL(file);
+      try {
+        const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = url; });
+        return img;
+      } finally { URL.revokeObjectURL(url); }
+    }
+
+    async function transform(file) {
+      const bmp = await imageBitmapFromFile(file);
+      const {W, H} = canDims();
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      ctx.save();
+      ctx.filter = `blur(${state.blurPx}px)`;
+      const cover = fitCover(bmp.width, bmp.height, W, H);
+      ctx.drawImage(bmp, cover.sx, cover.sy, cover.sw, cover.sh, 0, 0, W, H);
+      ctx.restore();
+
+      const contain = fitContain(bmp.width, bmp.height, W, H);
+      ctx.drawImage(bmp, contain.dx, contain.dy, contain.dw, contain.dh);
+
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', state.quality));
+      const outUrl = URL.createObjectURL(blob);
+      return { outBlob: blob, outUrl };
+    }
+
+    async function processAll() {
+      if (!state.queue.length) return;
+      setBusy(true); log('', false); state.results.length = 0; refreshLists();
+      for (const item of state.queue) {
+        try {
+          const res = await transform(item.file);
+          state.results.push({ id: item.id, name: suggestOutName(item.name), ...res });
+          refreshLists();
+        } catch (e) {
+          console.error(e); log(`Error procesando ${item.name}`);
+        }
+      }
+      setBusy(false);
+    }
+
+    async function downloadAllZip() {
+      if (!state.results.length) return;
+      const zip = new JSZip();
+      const folder = zip.folder('adaptadas');
+      for (const r of state.results) {
+        const buf = await r.outBlob.arrayBuffer();
+        folder.file(r.name, buf);
+      }
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'imagenes_adaptadas.zip'; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    }
+
+    function clearAll() {
+      for (const it of state.queue) URL.revokeObjectURL(it.blobUrl);
+      for (const r of state.results) URL.revokeObjectURL(r.outUrl);
+      state.queue.length = 0; state.results.length = 0; log('', false);
+      refreshLists();
+      $('#btnProcess').disabled = true; $('#btnZipOut').disabled = true;
+    }
+
+    // UI wiring
+    $('#btnPick').addEventListener('click', () => $('#fileInput').click());
+    $('#btnZip').addEventListener('click', () => $('#zipInput').click());
+    $('#fileInput').addEventListener('change', (e) => appendFiles(e.target.files));
+    $('#zipInput').addEventListener('change', (e) => handleZipFiles(e.target.files));
+
+    const dz = $('#dropzone');
+    dz.addEventListener('dragover', (e)=>{ e.preventDefault(); dz.classList.add('border-emerald-500'); });
+    dz.addEventListener('dragleave', ()=> dz.classList.remove('border-emerald-500'));
+    dz.addEventListener('drop', (e)=>{ e.preventDefault(); dz.classList.remove('border-emerald-500'); const files = e.dataTransfer.files || []; appendFiles(files); handleZipFiles(files); });
+
+    document.querySelectorAll('input[name="orientation"]').forEach(r => {
+      r.addEventListener('change', (e)=>{
+        state.orientation = e.target.value;
+        $('#lblLandscape').classList.toggle('border-emerald-500', state.orientation==='landscape');
+        $('#lblLandscape').classList.toggle('bg-emerald-500/20', state.orientation==='landscape');
+        $('#lblPortrait').classList.toggle('border-emerald-500', state.orientation==='portrait');
+        $('#lblPortrait').classList.toggle('bg-emerald-500/20', state.orientation==='portrait');
+      });
+    });
+
+    $('#rangeBlur').addEventListener('input', (e)=>{ state.blurPx = parseInt(e.target.value); $('#blurVal').textContent = state.blurPx + 'px'; });
+    $('#rangeQ').addEventListener('input', (e)=>{ state.quality = parseFloat(e.target.value); $('#qVal').textContent = Math.round(state.quality*100) + '%'; });
+
+    $('#btnProcess').addEventListener('click', processAll);
+    document.getElementById('btnZipOut').addEventListener('click', downloadAllZip);
+    $('#btnSaveDir').addEventListener('click', saveAllToFolder);
+    $('#btnClear').addEventListener('click', clearAll);
+
+    $('#lblLandscape').classList.add('bg-emerald-500/20','border-emerald-500');
+
+    window.addEventListener('beforeunload', () => {
+      for (const it of state.queue) URL.revokeObjectURL(it.blobUrl);
+      for (const r of state.results) URL.revokeObjectURL(r.outUrl);
+    });
+  </script>
+</body>
+</html>
