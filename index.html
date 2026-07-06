@@ -5,116 +5,296 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Stalin Blur - Añadir blur a imágenes</title>
   <link rel="icon" href="stalin.png" type="image/png">
-  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+  
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+  
+  <script type="module">
+      import 'https://esm.run/@material/web/all.js';
+  </script>
+
   <style>
-    * { box-sizing: border-box; }
-    .aspect-video { position: relative; width: 100%; }
-    .aspect-video::before { content: ""; display: block; padding-bottom: 56.25%; }
-    .aspect-video>* { position: absolute; inset: 0; }
-    .ghost-btn { border: 1px solid rgb(64 64 64); background: rgb(38 38 38); }
-    .ghost-btn:hover { background: rgb(64 64 64); }
+    :root {
+        /* Paleta M3 Oscura - Tema Rojo Carmesí */
+        --md-sys-color-primary: #FFB4AB;
+        --md-sys-color-on-primary: #690005;
+        --md-sys-color-primary-container: #93000A;
+        --md-sys-color-on-primary-container: #FFDAD6;
+        
+        --md-sys-color-background: #201A19;
+        --md-sys-color-on-background: #EDE0DF;
+        --md-sys-color-surface: #201A19;
+        --md-sys-color-on-surface: #EDE0DF;
+        
+        --md-sys-color-surface-container-low: #2C2220;
+        --md-sys-color-surface-container: #342927;
+        --md-sys-color-surface-container-high: #3F3331;
+        
+        --md-sys-color-outline: #A08C89;
+        --md-sys-color-on-surface-variant: #D8C2BE;
+        
+        font-family: 'Roboto', sans-serif;
+        background-color: var(--md-sys-color-background);
+        color: var(--md-sys-color-on-background);
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    * { box-sizing: inherit; }
+
+    body {
+        display: flex; flex-direction: column; min-height: 100vh;
+    }
+
+    header {
+        position: sticky; top: 0; z-index: 40;
+        background-color: rgba(32, 26, 25, 0.85);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--md-sys-color-surface-container-high);
+        padding: 12px 24px;
+        display: flex; align-items: center; gap: 12px;
+    }
+
+    .brand-title { margin: 0; font-size: 20px; font-weight: 500; letter-spacing: 0.15px; }
+
+    main {
+        max-width: 1200px; margin: 0 auto; padding: 24px; width: 100%;
+        display: grid; gap: 24px; flex: 1;
+    }
+
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; }
+
+    .card {
+        background-color: var(--md-sys-color-surface-container);
+        border-radius: 24px; padding: 24px;
+        display: flex; flex-direction: column; gap: 16px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .card-title { margin: 0; font-size: 16px; font-weight: 500; color: var(--md-sys-color-primary); }
+
+    #dropzone {
+        border: 2px dashed var(--md-sys-color-outline); border-radius: 16px; padding: 32px 16px;
+        text-align: center; color: var(--md-sys-color-on-surface-variant);
+        background-color: var(--md-sys-color-surface-container-low); cursor: pointer; transition: all 0.2s;
+    }
+    #dropzone:hover, #dropzone.dragover {
+        background-color: var(--md-sys-color-surface-container-high);
+        border-color: var(--md-sys-color-primary); color: var(--md-sys-color-primary);
+    }
+
+    .control-row { display: flex; align-items: center; gap: 16px; }
+    .control-label { font-size: 14px; width: 80px; color: var(--md-sys-color-on-surface-variant); }
+    .control-value { font-size: 14px; width: 40px; text-align: right; font-family: monospace; }
+    md-slider { flex: 1; }
+
+    .img-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px;
+        max-height: 450px; overflow-y: auto; padding-right: 8px;
+    }
+
+    .img-card {
+        background: var(--md-sys-color-surface-container-high); border-radius: 12px;
+        overflow: hidden; display: flex; flex-direction: column; border: 1px solid transparent;
+    }
+    .img-card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #111; }
+    .img-info { padding: 8px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .img-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+    
+    .action-btn {
+        background: none; border: none; color: var(--md-sys-color-on-surface-variant); 
+        cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 50%;
+        transition: background 0.2s, color 0.2s;
+    }
+    .action-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .action-btn.del-btn:hover { background: rgba(255, 84, 73, 0.15); color: #ff5449; }
+
+    .hidden { display: none !important; }
+    
+    footer {
+        text-align: center; padding: 32px 24px; color: var(--md-sys-color-on-surface-variant);
+        font-style: italic; font-size: 14px; border-top: 1px solid var(--md-sys-color-surface-container-high);
+    }
+
+    #snackbar {
+        position: fixed; bottom: -60px; left: 50%; transform: translateX(-50%);
+        background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);
+        padding: 14px 24px; border-radius: 8px; font-size: 14px; font-weight: 500;
+        transition: bottom 0.3s cubic-bezier(0.2, 0, 0, 1); z-index: 100;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    #snackbar.show { bottom: 24px; }
+    
+    md-linear-progress { width: 100%; border-radius: 4px; }
+
+    .cropper-container { max-height: 50vh !important; }
+
+    /* Clase auxiliar para forzar botones a 100% de ancho */
+    .btn-full-width { width: 100%; }
   </style>
 </head>
-<body class="min-h-screen w-full bg-neutral-950 text-neutral-100">
-  <header class="sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-neutral-950/60 border-b border-neutral-800">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-      <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow"></div>
-      <h1 class="text-lg font-semibold tracking-tight">Stalin Blur</h1>
-      <span class="text-xs text-neutral-400 ml-auto">🇨🇳</span>
-    </div>
+<body>
+  <header>
+    <h1 class="brand-title">Stalin Blur</h1>
+    <span style="margin-left: auto; font-size: 20px;" title="Edición Revolucionaria">☭</span>
   </header>
 
-  <main class="max-w-6xl mx-auto px-4 py-6 grid gap-6">
-    <section class="grid md:grid-cols-3 gap-4">
-      <div class="p-4 rounded-2xl border border-neutral-800 bg-neutral-900/50 shadow">
-        <h2 class="text-sm font-medium mb-3">Entrada</h2>
-        <div class="flex flex-col gap-2">
-          <button id="btnPick" class="px-3 py-2 rounded-xl ghost-btn transition text-sm">Seleccionar imágenes</button>
-          <input id="fileInput" type="file" accept="image/*" multiple class="hidden" />
+  <main>
+    <div class="grid-3">
+      <div class="card">
+        <h2 class="card-title">Entrada</h2>
+        <div style="display: flex; gap: 8px;">
+            <md-filled-tonal-button id="btnPick" style="flex: 1;">
+                <md-icon slot="icon">add_photo_alternate</md-icon> Imágenes
+            </md-filled-tonal-button>
+            <md-outlined-button id="btnZip" style="flex: 1;">
+                <md-icon slot="icon">folder_zip</md-icon> Cargar ZIP
+            </md-outlined-button>
+        </div>
+        
+        <input id="fileInput" type="file" accept="image/*" multiple class="hidden" />
+        <input id="zipInput" type="file" accept=".zip" class="hidden" />
 
-          <button id="btnZip" class="px-3 py-2 rounded-xl ghost-btn transition text-sm" disabled>Cargar ZIP</button>
-          <input id="zipInput" type="file" accept=".zip" class="hidden" />
-
-          <div id="dropzone" class="mt-2 border-2 border-dashed border-neutral-700 rounded-2xl p-6 text-center text-sm text-neutral-300 bg-neutral-900/40">
-            Arrastrá imágenes aquí
-          </div>
-          <p class="text-xs text-neutral-400">Admite .png, .jpg, .jpeg, .webp, .bmp y .zip</p>
+        <div id="dropzone" onclick="document.getElementById('fileInput').click()">
+          <md-icon style="font-size: 32px; margin-bottom: 8px;">upload_file</md-icon>
+          <div>Arrastra imágenes o haz clic aquí</div>
+          <div style="font-size: 12px; margin-top: 4px;">PNG, JPG, WEBP, BMP o ZIP</div>
         </div>
       </div>
 
-      <div class="p-4 rounded-2xl border border-neutral-800 bg-neutral-900/50 shadow">
-        <h2 class="text-sm font-medium mb-3">Salida</h2>
-        <div class="flex flex-wrap gap-2 items-center">
-          <label class="px-3 py-1.5 rounded-xl text-sm cursor-pointer border border-neutral-700" id="lblLandscape">
-            <input type="radio" name="orientation" value="landscape" class="hidden" checked>
-            1920×1080 (Horizontal)
-          </label>
-          <label class="px-3 py-1.5 rounded-xl text-sm cursor-pointer border border-neutral-700" id="lblPortrait">
-            <input type="radio" name="orientation" value="portrait" class="hidden">
-            1080×1920 (Vertical)
-          </label>
-        </div>
+      <div class="card">
+        <h2 class="card-title">Formato de Salida</h2>
+        
+        <md-chip-set id="ratio-chips">
+            <md-filter-chip label="16:9 (Horizontal)" selected data-w="1920" data-h="1080"></md-filter-chip>
+            <md-filter-chip label="9:16 (Vertical)" data-w="1080" data-h="1920"></md-filter-chip>
+            <md-filter-chip label="1:1 (Cuadrado)" data-w="1080" data-h="1080"></md-filter-chip>
+            <md-filter-chip label="4:5 (Post)" data-w="1080" data-h="1350"></md-filter-chip>
+        </md-chip-set>
 
-        <div class="mt-4 grid gap-3">
-          <div class="flex items-center gap-3">
-            <label class="text-xs text-neutral-300 w-24">Blur</label>
-            <input id="rangeBlur" type="range" min="0" max="60" value="28" class="w-full" />
-            <span id="blurVal" class="text-xs w-10 text-right">28px</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <label class="text-xs text-neutral-300 w-24">Calidad JPG</label>
-            <input id="rangeQ" type="range" min="0.5" max="1" step="0.01" value="0.92" class="w-full" />
-            <span id="qVal" class="text-xs w-10 text-right">92%</span>
-          </div>
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+            <div class="control-row">
+                <span class="control-label">Blur</span>
+                <md-slider id="rangeBlur" min="0" max="80" value="28" labeled></md-slider>
+                <span id="blurVal" class="control-value">28px</span>
+            </div>
+            <div class="control-row">
+                <span class="control-label">Calidad</span>
+                <md-slider id="rangeQ" min="50" max="100" step="1" value="92" labeled></md-slider>
+                <span id="qVal" class="control-value">92%</span>
+            </div>
         </div>
       </div>
 
-      <div class="p-4 rounded-2xl border border-neutral-800 bg-neutral-900/50 shadow flex flex-col gap-2">
-        <h2 class="text-sm font-medium mb-3">Acciones</h2>
-        <button id="btnProcess" class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 transition text-sm disabled:opacity-50" disabled>Procesar</button>
-        <button id="btnZipOut" class="px-3 py-2 rounded-xl ghost-btn transition text-sm disabled:opacity-50" disabled>Descargar todo (ZIP)</button>
-        <button id="btnSaveDir" class="px-3 py-2 rounded-xl ghost-btn transition text-sm">Guardar todo en carpeta</button>
-        <button id="btnClear" class="px-3 py-2 rounded-xl ghost-btn transition text-sm">Limpiar</button>
-        <p id="log" class="text-xs text-amber-400 mt-1 whitespace-pre-wrap"></p>
-      </div>
-    </section>
+      <div class="card" style="display: flex; flex-direction: column; gap: 12px;">
+        <h2 class="card-title" style="margin-bottom: 4px;">Acciones</h2>
+        
+        <md-filled-button id="btnProcess" disabled class="btn-full-width">
+            <md-icon slot="icon">blur_on</md-icon> Procesar Cola
+        </md-filled-button>
+        
+        <md-linear-progress id="progressBar" value="0" class="hidden"></md-linear-progress>
 
-    <section class="grid md:grid-cols-2 gap-4">
-      <div class="p-4 rounded-2xl border border-neutral-800 bg-neutral-900/50 shadow">
-        <h3 class="text-sm font-medium mb-3">Cola (<span id="queueCount">0</span>)</h3>
-        <div id="queueGrid" class="grid grid-cols-2 lg:grid-cols-3 gap-3"></div>
+        <md-filled-tonal-button id="btnZipOut" disabled class="btn-full-width">
+            <md-icon slot="icon">archive</md-icon> Descargar ZIP
+        </md-filled-tonal-button>
+        
+        <md-outlined-button id="btnSaveDir" disabled class="btn-full-width">
+            <md-icon slot="icon">folder_open</md-icon> Guardar en Carpeta
+        </md-outlined-button>
+        
+        <md-text-button id="btnClear" class="btn-full-width">
+            <md-icon slot="icon">delete_sweep</md-icon> Limpiar Todo
+        </md-text-button>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3 class="card-title">Cola (<span id="queueCount">0</span>)</h3>
+        <div id="queueGrid" class="img-grid"></div>
       </div>
 
-      <div class="p-4 rounded-2xl border border-neutral-800 bg-neutral-900/50 shadow">
-        <h3 class="text-sm font-medium mb-3">Resultados (<span id="resultsCount">0</span>)</h3>
-        <div id="resultsGrid" class="grid grid-cols-2 lg:grid-cols-3 gap-3"></div>
+      <div class="card">
+        <h3 class="card-title">Resultados (<span id="resultsCount">0</span>)</h3>
+        <div id="resultsGrid" class="img-grid"></div>
       </div>
-    </section>
-
-    <footer class="py-4 text-center text-xs text-neutral-500">
-      <p id="footerQuote" class="max-w-3xl mx-auto"></p>
-    </footer>
+    </div>
   </main>
 
+  <footer>
+    <div id="footerQuote" style="max-width: 600px; margin: 0 auto;"></div>
+  </footer>
+
+  <div id="snackbar">Proceso completado</div>
+
+  <md-dialog id="cropDialog">
+    <div slot="headline">Ajustar Encuadre</div>
+    <form slot="content" id="crop-form" method="dialog">
+      <div style="width: 100%; display: flex; justify-content: center; background: #000; border-radius: 8px; overflow: hidden;">
+        <img id="cropImage" style="max-width: 100%; display: block;" />
+      </div>
+    </form>
+    <div slot="actions">
+      <md-text-button onclick="cancelCrop()">Cancelar</md-text-button>
+      <md-filled-button onclick="applyCrop()"><md-icon slot="icon">crop</md-icon> Aplicar Recorte</md-filled-button>
+    </div>
+  </md-dialog>
+
+  <md-dialog id="previewDialog">
+    <div slot="headline">Vista Previa</div>
+    <form slot="content" id="preview-form" method="dialog" style="padding: 8px 0;">
+      <img id="previewImage" style="max-width: 100%; max-height: 60vh; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);" />
+    </form>
+    <div slot="actions">
+      <md-text-button form="preview-form">Cerrar</md-text-button>
+      <md-filled-button id="previewDownloadBtn"><md-icon slot="icon">download</md-icon> Descargar</md-filled-button>
+    </div>
+  </md-dialog>
+
   <script>
-    // Estado
+    // ESTADO
     const state = {
-      queue: [],        // {id, name, file, blobUrl}
-      results: [],      // {id, name, outBlob, outUrl}
-      orientation: 'landscape', // 'landscape' | 'portrait'
+      queue: [],
+      results: [],
+      targetW: 1920,
+      targetH: 1080,
       blurPx: 28,
       quality: 0.92,
       busy: false,
     };
 
-    // Utilidades
     const $ = (sel) => document.querySelector(sel);
     const uid = () => Math.random().toString(36).slice(2);
+    
+    const snackbar = $('#snackbar');
+    const progressBar = $('#progressBar');
+    
+    function showToast(msg) {
+        snackbar.textContent = msg;
+        snackbar.classList.add('show');
+        setTimeout(() => snackbar.classList.remove('show'), 3500);
+    }
+
+    if ('showDirectoryPicker' in window) {
+        $('#btnSaveDir').disabled = false;
+    } else {
+        $('#btnSaveDir').style.display = 'none'; 
+    }
 
     const acceptExt = new Set(['.png', '.jpg', '.jpeg', '.webp', '.bmp']);
     const isImageFile = (f) => f.type?.startsWith('image/') || hasImageExt(f.name);
-    function hasImageExt(name = '') { const lower = name.toLowerCase(); for (const ext of acceptExt) if (lower.endsWith(ext)) return true; return false; }
+    function hasImageExt(name = '') { 
+        const lower = name.toLowerCase(); 
+        for (const ext of acceptExt) if (lower.endsWith(ext)) return true; 
+        return false; 
+    }
 
     function getMimeFromExt(name) {
       const lower = name.toLowerCase();
@@ -126,62 +306,98 @@
 
     function suggestOutName(name = 'output.jpg') {
       const base = name.replace(/\.[^.]+$/, '');
-      const suf = state.orientation === 'landscape' ? '_1920x1080' : '_1080x1920';
-      return base + suf + '.jpg';
+      return `${base}_${state.targetW}x${state.targetH}.jpg`;
     }
 
     function fitContain(sw, sh, dw, dh) {
       const s = Math.min(dw / sw, dh / sh);
-      const cw = Math.round(sw * s);
-      const ch = Math.round(sh * s);
-      const dx = Math.round((dw - cw) / 2);
-      const dy = Math.round((dh - ch) / 2);
-      return { dx, dy, dw: cw, dh: ch };
+      return { dw: Math.round(sw * s), dh: Math.round(sh * s), dx: Math.round((dw - (sw * s)) / 2), dy: Math.round((dh - (sh * s)) / 2) };
     }
 
     function fitCover(sw, sh, dw, dh) {
       const s = Math.max(dw / sw, dh / sh);
-      const sx = Math.round((sw - dw / s) / 2);
-      const sy = Math.round((sh - dh / s) / 2);
-      const swCrop = Math.round(dw / s);
-      const shCrop = Math.round(dh / s);
-      return { sx, sy, sw: swCrop, sh: shCrop };
+      return { sw: Math.round(dw / s), sh: Math.round(dh / s), sx: Math.round((sw - dw / s) / 2), sy: Math.round((sh - dh / s) / 2) };
     }
-
-    function canDims() { return state.orientation === 'landscape' ? {W:1920,H:1080} : {W:1080,H:1920}; }
 
     function setBusy(v) {
       state.busy = v;
       $('#btnProcess').disabled = v || !state.queue.length;
       $('#btnZipOut').disabled = v || !state.results.length;
-      $('#btnPick').disabled = v;
-      $('#btnZip').disabled = v;
-      $('#dropzone').classList.toggle('opacity-50', v);
+      if('showDirectoryPicker' in window) $('#btnSaveDir').disabled = v || !state.results.length;
+      $('#btnPick').disabled = v; $('#btnZip').disabled = v; $('#btnClear').disabled = v;
+      $('#dropzone').style.opacity = v ? '0.5' : '1';
+      $('#dropzone').style.pointerEvents = v ? 'none' : 'auto';
     }
 
-    function log(msg, append = true) {
-      const el = document.querySelector('#log');
-      if (!el) return;
-      el.textContent = append ? (el.textContent ? el.textContent + '\n' + msg : msg) : msg;
-    }
+    window.removeQueueItem = (id) => {
+        const item = state.queue.find(x => x.id === id);
+        if (item) URL.revokeObjectURL(item.blobUrl);
+        state.queue = state.queue.filter(x => x.id !== id);
+        refreshLists();
+        $('#btnProcess').disabled = !state.queue.length || state.busy;
+    };
 
-    async function saveAllToFolder() {
-      if (!state.results.length) { log('No hay resultados para guardar.'); return; }
-      if (!('showDirectoryPicker' in window)) { log('Tu navegador no soporta guardar en carpeta. Probá Chrome/Edge.'); return; }
-      try {
-        const dir = await window.showDirectoryPicker({ id: 'adaptadas-out' });
-        for (const r of state.results) {
-          const fileHandle = await dir.getFileHandle(r.name, { create: true });
-          const writable = await fileHandle.createWritable();
-          await writable.write(r.outBlob);
-          await writable.close();
-        }
-        log('Guardado completo en la carpeta elegida.');
-      } catch (e) {
-        if (e && e.name === 'AbortError') return; // usuario canceló
-        console.error(e); log('No se pudo guardar en carpeta.');
-      }
-    }
+    window.openPreview = (url, name) => {
+        const img = document.getElementById('previewImage');
+        img.src = url;
+        const btn = document.getElementById('previewDownloadBtn');
+        btn.onclick = () => {
+            const a = document.createElement('a');
+            a.href = url; a.download = name; a.click();
+        };
+        document.getElementById('previewDialog').show();
+    };
+
+    // LÓGICA DE RECORTAR IMAGEN (CROPPER)
+    let currentCropper = null;
+    let currentCropId = null;
+
+    window.openCropDialog = (id) => {
+        const item = state.queue.find(x => x.id === id);
+        if(!item) return;
+        currentCropId = id;
+        
+        const cropImg = document.getElementById('cropImage');
+        cropImg.src = item.blobUrl;
+        
+        document.getElementById('cropDialog').show();
+        
+        setTimeout(() => {
+            if (currentCropper) currentCropper.destroy();
+            currentCropper = new Cropper(cropImg, {
+                viewMode: 2, 
+                autoCropArea: 0.9,
+                background: false,
+                zoomable: false
+            });
+        }, 150);
+    };
+
+    window.cancelCrop = () => {
+        document.getElementById('cropDialog').close();
+        if (currentCropper) currentCropper.destroy();
+    };
+
+    window.applyCrop = () => {
+        if (!currentCropper || !currentCropId) return;
+        const canvas = currentCropper.getCroppedCanvas();
+        if (!canvas) return;
+        
+        canvas.toBlob(blob => {
+            const item = state.queue.find(x => x.id === currentCropId);
+            if (item) {
+                URL.revokeObjectURL(item.blobUrl);
+                const extMime = getMimeFromExt(item.name);
+                item.file = new File([blob], item.name, { type: extMime });
+                item.blobUrl = URL.createObjectURL(item.file);
+                refreshLists();
+                showToast("Imagen recortada con éxito");
+            }
+            document.getElementById('cropDialog').close();
+            currentCropper.destroy();
+            currentCropper = null;
+        }, 'image/png'); 
+    };
 
     function refreshLists() {
       $('#queueCount').textContent = state.queue.length;
@@ -189,43 +405,39 @@
 
       const qg = $('#queueGrid');
       qg.innerHTML = '';
-      for (const it of state.queue) {
-        const card = document.createElement('article');
-        card.className = 'rounded-xl overflow-hidden border border-neutral-800 bg-neutral-900/70';
+      state.queue.forEach(it => {
+        const card = document.createElement('div');
+        card.className = 'img-card';
         card.innerHTML = `
-          <div class="aspect-video bg-neutral-950/50">
-            <img src="${it.blobUrl}" alt="${it.name}" class="w-full h-full object-cover"/>
-          </div>
-          <div class="p-2 text-xs flex items-center justify-between gap-2">
-            <span class="truncate" title="${it.name}">${it.name}</span>
-            <button class="text-neutral-300 hover:text-red-400">✕</button>
+          <img src="${it.blobUrl}" alt="${it.name}"/>
+          <div class="img-info">
+            <span class="img-name" title="${it.name}">${it.name}</span>
+            <div style="display: flex; gap: 2px;">
+              <button class="action-btn" onclick="openCropDialog('${it.id}')" title="Recortar"><md-icon style="font-size: 18px;">crop</md-icon></button>
+              <button class="action-btn del-btn" onclick="removeQueueItem('${it.id}')" title="Eliminar"><md-icon style="font-size: 18px;">close</md-icon></button>
+            </div>
           </div>`;
-        card.querySelector('button').addEventListener('click', () => {
-          URL.revokeObjectURL(it.blobUrl);
-          state.queue = state.queue.filter(x => x.id !== it.id);
-          refreshLists();
-          $('#btnProcess').disabled = !state.queue.length || state.busy;
-        });
         qg.appendChild(card);
-      }
+      });
 
       const rg = $('#resultsGrid');
       rg.innerHTML = '';
-      for (const r of state.results) {
-        const card = document.createElement('article');
-        card.className = 'rounded-xl overflow-hidden border border-neutral-800 bg-neutral-900/70';
+      state.results.forEach(r => {
+        const card = document.createElement('div');
+        card.className = 'img-card';
         card.innerHTML = `
-          <div class="aspect-video bg-neutral-950/50">
-            <img src="${r.outUrl}" alt="${r.name}" class="w-full h-full object-cover"/>
-          </div>
-          <div class="p-2 text-xs flex items-center justify-between gap-2">
-            <span class="truncate" title="${r.name}">${r.name}</span>
-            <a class="px-2 py-1 rounded-lg ghost-btn" href="${r.outUrl}" download="${r.name}">Descargar</a>
+          <img src="${r.outUrl}" alt="${r.name}" style="cursor: zoom-in;" onclick="openPreview('${r.outUrl}', '${r.name}')" title="Hacer clic para ampliar"/>
+          <div class="img-info" style="justify-content: center; padding: 4px;">
+            <a href="${r.outUrl}" download="${r.name}" style="color: var(--md-sys-color-primary); text-decoration: none; font-weight: 500; font-size: 11px; display: flex; align-items: center; gap: 4px;">
+                <md-icon style="font-size: 14px;">download</md-icon> GUARDAR
+            </a>
           </div>`;
         rg.appendChild(card);
-      }
+      });
 
-      $('#btnZipOut').disabled = !state.results.length || state.busy;
+      const hasResults = state.results.length > 0;
+      $('#btnZipOut').disabled = !hasResults || state.busy;
+      if('showDirectoryPicker' in window) $('#btnSaveDir').disabled = !hasResults || state.busy;
     }
 
     function appendFiles(fileList) {
@@ -234,13 +446,15 @@
       const items = list.map(f => ({ id: uid(), name: f.name, file: f, blobUrl: URL.createObjectURL(f) }));
       state.queue.push(...items);
       refreshLists();
-      $('#btnProcess').disabled = !state.queue.length || state.busy;
+      $('#btnProcess').disabled = false;
+      showToast(`${list.length} imagen(es) añadida(s)`);
     }
 
     async function handleZipFiles(fileList) {
       const list = Array.from(fileList || []).filter(f => f.name.toLowerCase().endsWith('.zip'));
       if (!list.length) return;
       setBusy(true);
+      showToast("Leyendo archivo ZIP...");
       try {
         const newItems = [];
         for (const zf of list) {
@@ -257,11 +471,11 @@
         if (newItems.length) {
           state.queue.push(...newItems);
           refreshLists();
-          $('#btnProcess').disabled = !state.queue.length || state.busy;
+          $('#btnProcess').disabled = false;
+          showToast(`Se extrajeron ${newItems.length} imágenes del ZIP`);
         }
       } catch (err) {
-        console.error(err);
-        log('No se pudo leer el ZIP. Asegurate de que contenga imágenes.');
+        showToast('Error: ZIP inválido o corrupto');
       } finally {
         setBusy(false);
       }
@@ -269,7 +483,7 @@
 
     async function imageBitmapFromFile(file) {
       if ('createImageBitmap' in window) {
-        return await createImageBitmap(file);
+        try { return await createImageBitmap(file); } catch (e) {}
       }
       const url = URL.createObjectURL(file);
       try {
@@ -280,7 +494,7 @@
 
     async function transform(file) {
       const bmp = await imageBitmapFromFile(file);
-      const {W, H} = canDims();
+      const W = state.targetW; const H = state.targetH;
       const canvas = document.createElement('canvas');
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext('2d');
@@ -288,7 +502,10 @@
       ctx.save();
       ctx.filter = `blur(${state.blurPx}px)`;
       const cover = fitCover(bmp.width, bmp.height, W, H);
-      ctx.drawImage(bmp, cover.sx, cover.sy, cover.sw, cover.sh, 0, 0, W, H);
+      
+      const extraX = W * 0.1;
+      const extraY = H * 0.1;
+      ctx.drawImage(bmp, cover.sx, cover.sy, cover.sw, cover.sh, -extraX, -extraY, W + (extraX * 2), H + (extraY * 2));
       ctx.restore();
 
       const contain = fitContain(bmp.width, bmp.height, W, H);
@@ -299,161 +516,151 @@
       return { outBlob: blob, outUrl };
     }
 
+    const yieldToMain = () => new Promise(r => setTimeout(r, 0));
+
     async function processAll() {
       if (!state.queue.length) return;
-      setBusy(true); log('', false); state.results.length = 0; refreshLists();
+      setBusy(true);
+      
+      for (const r of state.results) URL.revokeObjectURL(r.outUrl);
+      state.results.length = 0; 
+      refreshLists();
+
+      progressBar.classList.remove('hidden');
+      progressBar.value = 0;
+      
+      let processed = 0;
+      const total = state.queue.length;
+
       for (const item of state.queue) {
         try {
           const res = await transform(item.file);
           state.results.push({ id: item.id, name: suggestOutName(item.name), ...res });
-          refreshLists();
         } catch (e) {
-          console.error(e); log(`Error procesando ${item.name}`);
+          console.error(`Error procesando ${item.name}`, e);
         }
+        
+        processed++;
+        progressBar.value = processed / total;
+        refreshLists();
+        await yieldToMain();
       }
+      
+      progressBar.classList.add('hidden');
       setBusy(false);
+      showToast(`¡Completado! ${processed} imágenes procesadas.`);
     }
 
     async function downloadAllZip() {
       if (!state.results.length) return;
-      const zip = new JSZip();
-      const folder = zip.folder('adaptadas');
-      for (const r of state.results) {
-        const buf = await r.outBlob.arrayBuffer();
-        folder.file(r.name, buf);
+      setBusy(true);
+      showToast("Generando archivo ZIP...");
+      await yieldToMain();
+      
+      try {
+          const zip = new JSZip();
+          const folder = zip.folder('adaptadas');
+          for (const r of state.results) {
+            const buf = await r.outBlob.arrayBuffer();
+            folder.file(r.name, buf);
+          }
+          const blob = await zip.generateAsync({ type: 'blob' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'stalinblur_export.zip'; a.click();
+          setTimeout(()=>URL.revokeObjectURL(url), 2000);
+          showToast("ZIP descargado con éxito");
+      } catch (e) {
+          showToast("Error al generar ZIP");
       }
-      const blob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'imagenes_adaptadas.zip'; a.click();
-      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+      setBusy(false);
+    }
+
+    async function saveAllToFolder() {
+      if (!state.results.length) return;
+      try {
+        const dir = await window.showDirectoryPicker({ id: 'adaptadas-out' });
+        setBusy(true);
+        progressBar.classList.remove('hidden');
+        progressBar.value = 0;
+        
+        let saved = 0;
+        for (const r of state.results) {
+          const fileHandle = await dir.getFileHandle(r.name, { create: true });
+          const writable = await fileHandle.createWritable();
+          await writable.write(r.outBlob);
+          await writable.close();
+          saved++;
+          progressBar.value = saved / state.results.length;
+        }
+        showToast('Guardado completo en carpeta.');
+      } catch (e) {
+        if (e.name !== 'AbortError') showToast('Error al guardar en carpeta.');
+      } finally {
+        progressBar.classList.add('hidden');
+        setBusy(false);
+      }
     }
 
     function clearAll() {
       for (const it of state.queue) URL.revokeObjectURL(it.blobUrl);
       for (const r of state.results) URL.revokeObjectURL(r.outUrl);
-      state.queue.length = 0; state.results.length = 0; log('', false);
+      state.queue.length = 0; state.results.length = 0;
       refreshLists();
-      $('#btnProcess').disabled = true; $('#btnZipOut').disabled = true;
+      $('#btnProcess').disabled = true;
+      showToast("Memoria liberada");
     }
 
-    // UI wiring
     $('#btnPick').addEventListener('click', () => $('#fileInput').click());
     $('#btnZip').addEventListener('click', () => $('#zipInput').click());
-    $('#fileInput').addEventListener('change', (e) => appendFiles(e.target.files));
-    $('#zipInput').addEventListener('change', (e) => handleZipFiles(e.target.files));
+    $('#fileInput').addEventListener('change', (e) => { appendFiles(e.target.files); e.target.value = ''; });
+    $('#zipInput').addEventListener('change', (e) => { handleZipFiles(e.target.files); e.target.value = ''; });
 
     const dz = $('#dropzone');
-    dz.addEventListener('dragover', (e)=>{ e.preventDefault(); dz.classList.add('border-emerald-500'); });
-    dz.addEventListener('dragleave', ()=> dz.classList.remove('border-emerald-500'));
-    dz.addEventListener('drop', (e)=>{ e.preventDefault(); dz.classList.remove('border-emerald-500'); const files = e.dataTransfer.files || []; appendFiles(files); handleZipFiles(files); });
+    dz.addEventListener('dragover', (e)=>{ e.preventDefault(); dz.classList.add('dragover'); });
+    dz.addEventListener('dragleave', ()=> dz.classList.remove('dragover'));
+    dz.addEventListener('drop', (e)=>{ 
+        e.preventDefault(); dz.classList.remove('dragover'); 
+        // Prevenir que se abra el input de archivos si el usuario soltó un archivo con drag&drop
+        e.stopPropagation();
+        const files = e.dataTransfer.files || []; 
+        appendFiles(files); handleZipFiles(files); 
+    });
 
-    document.querySelectorAll('input[name="orientation"]').forEach(r => {
-      r.addEventListener('change', (e)=>{
-        state.orientation = e.target.value;
-        $('#lblLandscape').classList.toggle('border-emerald-500', state.orientation==='landscape');
-        $('#lblLandscape').classList.toggle('bg-emerald-500/20', state.orientation==='landscape');
-        $('#lblPortrait').classList.toggle('border-emerald-500', state.orientation==='portrait');
-        $('#lblPortrait').classList.toggle('bg-emerald-500/20', state.orientation==='portrait');
-      });
+    document.querySelectorAll('#ratio-chips md-filter-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('#ratio-chips md-filter-chip').forEach(c => c.selected = false);
+            chip.selected = true;
+            state.targetW = parseInt(chip.dataset.w);
+            state.targetH = parseInt(chip.dataset.h);
+        });
     });
 
     $('#rangeBlur').addEventListener('input', (e)=>{ state.blurPx = parseInt(e.target.value); $('#blurVal').textContent = state.blurPx + 'px'; });
-    $('#rangeQ').addEventListener('input', (e)=>{ state.quality = parseFloat(e.target.value); $('#qVal').textContent = Math.round(state.quality*100) + '%'; });
+    $('#rangeQ').addEventListener('input', (e)=>{ state.quality = parseInt(e.target.value) / 100; $('#qVal').textContent = e.target.value + '%'; });
 
     $('#btnProcess').addEventListener('click', processAll);
-    document.getElementById('btnZipOut').addEventListener('click', downloadAllZip);
+    $('#btnZipOut').addEventListener('click', downloadAllZip);
     $('#btnSaveDir').addEventListener('click', saveAllToFolder);
     $('#btnClear').addEventListener('click', clearAll);
 
-    $('#lblLandscape').classList.add('bg-emerald-500/20','border-emerald-500');
+    window.addEventListener('beforeunload', clearAll);
 
-    window.addEventListener('beforeunload', () => {
-      for (const it of state.queue) URL.revokeObjectURL(it.blobUrl);
-      for (const r of state.results) URL.revokeObjectURL(r.outUrl);
+    const quotes = [
+      { author: "Karl Marx", text: "Los filósofos no han hecho más que interpretar el mundo; de lo que se trata es de transformarlo." },
+      { author: "Vladímir I. Lenin", text: "Sin teoría revolucionaria no puede haber movimiento revolucionario." },
+      { author: "Iósif Stalin", text: "La educación es un arma cuyo efecto depende de quién la tenga en sus manos y a quién apunte." },
+      { author: "Mao Zedong", text: "Una sola chispa puede incendiar la pradera." },
+      { author: "Ernesto Che Guevara", text: "Seamos realistas y hagamos lo imposible." }
+    ];
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const footerEl = document.getElementById("footerQuote");
+      if (!footerEl) return;
+      const randomIndex = Math.floor(Math.random() * quotes.length);
+      const { author, text } = quotes[randomIndex];
+      footerEl.innerHTML = `“${text}” <br><span style="color: var(--md-sys-color-primary); font-weight: 500; font-style: normal; margin-top: 8px; display: inline-block;">— ${author}</span>`;
     });
-
-    // Frases
-  const quotes = [
-    // Karl Marx
-    { author: "Karl Marx", text: "Los filósofos no han hecho más que interpretar el mundo; de lo que se trata es de transformarlo." },
-    { author: "Karl Marx", text: "La historia de todas las sociedades hasta nuestros días es la historia de la lucha de clases." },
-    { author: "Karl Marx", text: "Proletarios de todos los países, uníos." },
-    { author: "Karl Marx", text: "La emancipación de los trabajadores será obra de los trabajadores mismos." },
-
-    // Vladímir I. Lenin
-    { author: "Vladímir I. Lenin", text: "Sin teoría revolucionaria no puede haber movimiento revolucionario." },
-    { author: "Vladímir I. Lenin", text: "El socialismo no caerá del cielo, lo construirán las masas con su propia experiencia." },
-    { author: "Vladímir I. Lenin", text: "Hay décadas en las que no pasa nada y semanas en las que pasan décadas." },
-    { author: "Vladímir I. Lenin", text: "Aprender, aprender y aprender: he ahí la consigna." },
-
-    // Iósif Stalin
-    { author: "Iósif Stalin", text: "Los cuadros deciden todo." },
-    { author: "Iósif Stalin", text: "La educación es un arma cuyo efecto depende de quién la tenga en sus manos y a quién apunte." },
-    { author: "Iósif Stalin", text: "La vida se ha vuelto más alegre, camaradas; la vida se ha vuelto más feliz." },
-    { author: "Iósif Stalin", text: "El hombre es nuestro capital más valioso." },
-
-    // Mao Zedong
-    { author: "Mao Zedong", text: "Una sola chispa puede incendiar la pradera." },
-    { author: "Mao Zedong", text: "El poder nace del fusil." },
-    { author: "Mao Zedong", text: "Servir al pueblo." },
-    { author: "Mao Zedong", text: "Defender hasta la muerte la unidad entre el Partido y las masas." },
-
-    // Deng Xiaoping
-    { author: "Deng Xiaoping", text: "No importa si el gato es blanco o negro; mientras cace ratones es un buen gato." },
-    { author: "Deng Xiaoping", text: "Enriquecerse es glorioso." },
-    { author: "Deng Xiaoping", text: "Cruzar el río tocando las piedras." },
-    { author: "Deng Xiaoping", text: "Debemos liberar nuestras mentes y buscar la verdad en los hechos." },
-
-    // Xi Jinping
-    { author: "Xi Jinping", text: "El sueño chino es el gran rejuvenecimiento de la nación china." },
-    { author: "Xi Jinping", text: "No dejaremos a nadie atrás en el proceso de erradicar la pobreza." },
-    { author: "Xi Jinping", text: "Las aspiraciones del pueblo por una vida mejor son nuestro objetivo." },
-    { author: "Xi Jinping", text: "El Partido debe gobernarse estrictamente a sí mismo." },
-
-    // Ernesto "Che" Guevara
-    { author: "Ernesto Che Guevara", text: "Seamos realistas y hagamos lo imposible." },
-    { author: "Ernesto Che Guevara", text: "Hasta la victoria siempre." },
-    { author: "Ernesto Che Guevara", text: "El verdadero revolucionario está guiado por grandes sentimientos de amor." },
-    { author: "Ernesto Che Guevara", text: "Hay que endurecerse sin perder jamás la ternura." },
-
-    // Fidel Castro
-    { author: "Fidel Castro", text: "La historia me absolverá." },
-    { author: "Fidel Castro", text: "Dentro de la Revolución, todo; contra la Revolución, nada." },
-    { author: "Fidel Castro", text: "Revolución es cambiar todo lo que debe ser cambiado." },
-    { author: "Fidel Castro", text: "No le decimos al pueblo cree, le decimos lee." },
-
-    // Juan Domingo Perón
-    { author: "Juan Domingo Perón", text: "Mejor que decir es hacer, mejor que prometer es realizar." },
-    { author: "Juan Domingo Perón", text: "La única verdad es la realidad." },
-    { author: "Juan Domingo Perón", text: "Para un peronista no puede haber nada mejor que otro peronista." },
-    { author: "Juan Domingo Perón", text: "Llevaré en mis oídos la más maravillosa música, que es la palabra del pueblo argentino." },
-
-    // Eva Perón
-    { author: "Eva Perón", text: "Donde hay una necesidad, nace un derecho." },
-    { author: "Eva Perón", text: "Yo no valgo por lo que tengo sino por lo que doy." },
-    { author: "Eva Perón", text: "Prefiero ser Evita a ser la esposa del presidente." },
-    { author: "Eva Perón", text: "Renuncio a los honores, pero no a la lucha." }
-  ];
-
-  function setRandomFooterQuote() {
-    const footerEl = document.getElementById("footerQuote");
-    if (!footerEl) return;
-
-    const randomIndex = Math.floor(Math.random() * quotes.length);
-    const { author, text } = quotes[randomIndex];
-
-    footerEl.innerHTML = `“${text}” <span class="block mt-1 text-neutral-600">— ${author}</span>`;
-  }
-
-  // Ejecutar al cargar la página
-  document.addEventListener("DOMContentLoaded", setRandomFooterQuote);
-
   </script>
 </body>
-
 </html>
-
-
-
-
