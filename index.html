@@ -647,12 +647,52 @@
     window.addEventListener('beforeunload', clearAll);
 
     const quotes = [
-      { author: "Karl Marx", text: "Los filósofos no han hecho más que interpretar el mundo; de lo que se trata es de transformarlo." },
-      { author: "Vladímir I. Lenin", text: "Sin teoría revolucionaria no puede haber movimiento revolucionario." },
-      { author: "Iósif Stalin", text: "La educación es un arma cuyo efecto depende de quién la tenga en sus manos y a quién apunte." },
-      { author: "Mao Zedong", text: "Una sola chispa puede incendiar la pradera." },
-      { author: "Ernesto Che Guevara", text: "Seamos realistas y hagamos lo imposible." }
-    ];
+  // --- Originales ---
+  { author: "Karl Marx", text: "Los filósofos no han hecho más que interpretar el mundo; de lo que se trata es de transformarlo." },
+  { author: "Vladímir I. Lenin", text: "Sin teoría revolucionaria no puede haber movimiento revolucionario." },
+  { author: "Iósif Stalin", text: "La educación es un arma cuyo efecto depende de quién la tenga en sus manos y a quién apunte." },
+  { author: "Mao Zedong", text: "Una sola chispa puede incendiar la pradera." },
+  { author: "Ernesto Che Guevara", text: "Seamos realistas y hagamos lo imposible." },
+
+  // --- Marxismo-Leninismo y Líderes Socialistas ---
+  { author: "Rosa Luxemburgo", text: "Quien no se mueve, no siente las cadenas." },
+  { author: "Fidel Castro", text: "Un mundo mejor es posible." },
+  { author: "Antonio Gramsci", text: "Pesimismo de la inteligencia, optimismo de la voluntad." },
+  { author: "León Trotsky", text: "La vida es hermosa. Que las futuras generaciones la libren de todo mal, opresión y violencia." },
+  { author: "Ho Chi Minh", text: "Nada es más precioso que la independencia y la libertad." },
+  { author: "Thomas Sankara", text: "No podemos dejar que nuestros enemigos de hoy y de mañana nos intimiden; la revolución no se detiene." },
+  { author: "Alexandra Kollontai", text: "La mujer solo podrá ser plenamente libre cuando sea destruida la propiedad privada." },
+
+  // --- Peronismo y Militancia Argentina ---
+  { author: "Juan Domingo Perón", text: "Para un peronista no puede haber nada mejor que otro peronista." },
+  { author: "Eva Perón", text: "Donde existe una necesidad, nace un derecho." },
+  { author: "John William Cooke", text: "El peronismo es el hecho maldito del país burgués." },
+  { author: "Mario Roberto Santucho", text: "En la lucha armada está el camino hacia la liberación nacional y social." },
+  { author: "Rodolfo Walsh", text: "El campo del intelectual es por definición la conciencia. Un intelectual que no comprende lo que pasa en su tiempo y en su país es una contradicción caminante." },
+  { author: "Jorge Cárpena", text: "La patria no se vende, se defiende." },
+
+  // --- Católicos Revolucionarios y Teología de la Liberación ---
+  { author: "Camilo Torres Restrepo", text: "El deber de todo cristiano es ser revolucionario; y el deber de todo revolucionario es hacer la revolución." },
+  { author: "Gustavo Gutiérrez", text: "La liberación es ante todo una salvación integral que abarca a todo el hombre y a todos los hombres." },
+  { author: "Monseñor Óscar Arnulfo Romero", text: "Si me matan, resucitaré en el pueblo salvadoreño." },
+  { author: "Helder Câmara", text: "Cuando doy de comer a los pobres, me llaman santo. Cuando pregunto por qué tienen hambre, me llaman comunista." },
+  { author: "Carlos Mugica", text: "Yo estoy dispuesto a morir, pero no a matar." },
+  { author: "Frei Betto", text: "No hay verdadera fe que no se traduzca en amor, y el amor en la política se llama justicia social." },
+
+  // --- Revolución Islámica y Referentes Antiimperialistas Oriente Medio ---
+  { author: "Ruhollah Jomeini", text: "El Islam es la religión de los combatientes que buscan la justicia y la independencia." },
+  { author: "Ali Shariati", text: "Si no eres parte de la solución en la lucha contra la opresión, eres parte del problema, sin importar tus oraciones." },
+  { author: "Ali Jamenei", text: "La resistencia es la única forma de garantizar la dignidad y la soberanía de los pueblos reprimidos." },
+  { author: "Qasem Soleimani", text: "El campo de batalla es el paraíso de los hombres dignos." },
+  { author: "Musa al-Sadr", text: "La tiranía no se combate con lamentos, se combate con la unidad y la dignidad de los oprimidos." },
+
+  // --- Otros Movimientos Anticoloniales y Antiimperialistas ---
+  { author: "Frantz Fanon", text: "Cada generación debe, dentro de una relativa opacidad, descubrir su misión, cumplirla o traicionarla." },
+  { author: "Malcolm X", text: "Si no estás dispuesto a morir por ella, saca la palabra 'libertad' de tu vocabulario." },
+  { author: "Amílcar Cabral", text: "No ocultes nada a las masas populares. No digas mentiras. Reclama la victoria en los hechos, no en la imaginación." },
+  { author: "Patrice Lumumba", text: "Un día la historia dirá su palabra, pero no será la historia que se enseñe en Bruselas, París o Washington." },
+  { author: "Emiliano Zapata", text: "Es mejor morir de pie que vivir toda una vida arrodillado." }
+];
 
     document.addEventListener("DOMContentLoaded", () => {
       const footerEl = document.getElementById("footerQuote");
